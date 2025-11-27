@@ -57,7 +57,7 @@ class PurchaseDetailActivity : ComponentActivity() {
         val purchaseId = intent.getLongExtra("purchaseId", -1L)
 
         setContent {
-            CostManagerTheme {
+            CostManagerTheme(darkTheme = true) {
                 if (purchaseId != -1L) {
                     PurchaseDetailScreen(purchaseId = purchaseId) {
                         finish()

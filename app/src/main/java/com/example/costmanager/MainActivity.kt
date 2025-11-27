@@ -295,7 +295,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Meine Einkäufe") },
+                    title = { Text("Einkäufe") },
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {
