@@ -36,12 +36,15 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -94,6 +97,10 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+enum class Grouping {
+    WEEK, MONTH, YEAR
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,6 +124,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
     var isLoading by remember { mutableStateOf(false) }
     val datePickerRequest by purchaseViewModel.datePickerRequest.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
+    var grouping by remember { mutableStateOf(Grouping.MONTH) }
 
     if (datePickerRequest != null) {
         val datePickerState = rememberDatePickerState(
@@ -313,6 +321,36 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                                 Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Rückgängig")
                             }
                         }
+                        var showMenu by remember { mutableStateOf(false) }
+                        IconButton(onClick = { showMenu = !showMenu }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Gruppierung ändern")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Nach Woche") },
+                                onClick = {
+                                    grouping = Grouping.WEEK
+                                    showMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Nach Monat") },
+                                onClick = {
+                                    grouping = Grouping.MONTH
+                                    showMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Nach Jahr") },
+                                onClick = {
+                                    grouping = Grouping.YEAR
+                                    showMenu = false
+                                }
+                            )
+                        }
                     }
                 )
             },
@@ -334,6 +372,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                     PurchaseList(
                         purchases = purchases,
                         purchaseViewModel = purchaseViewModel,
+                        grouping = grouping,
                         modifier = Modifier.fillMaxSize()
                     )
                     if (isLoading) {
@@ -420,22 +459,47 @@ fun ExportDialog(
 fun PurchaseList(
     purchases: List<PurchaseWithPositions>,
     purchaseViewModel: PurchaseViewModel,
+    grouping: Grouping,
     modifier: Modifier = Modifier
 ) {
     val groupedPurchases = purchases.groupBy {
         val calendar = Calendar.getInstance()
         calendar.time = it.purchase.purchaseDate
-        calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.MONTH)
+        when (grouping) {
+            Grouping.YEAR -> calendar.get(Calendar.YEAR)
+            Grouping.MONTH -> calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.MONTH)
+            Grouping.WEEK -> {
+                calendar.firstDayOfWeek = Calendar.MONDAY
+                calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.WEEK_OF_YEAR)
+            }
+        }
     }.toSortedMap(compareByDescending { it })
 
     LazyColumn(modifier = modifier) {
         groupedPurchases.forEach { (_, monthPurchases) ->
             stickyHeader {
-                val date = monthPurchases.first().purchase.purchaseDate
-                val monthTotal = monthPurchases.sumOf { it.purchase.totalPrice }
+                val firstPurchaseInGroup = monthPurchases.first()
+                val date = firstPurchaseInGroup.purchase.purchaseDate
+                val groupTotal = monthPurchases.sumOf { it.purchase.totalPrice }
                 val localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                val monthName = localDate.month.getDisplayName(TextStyle.FULL, Locale.GERMANY)
-                val year = localDate.year
+
+                val headerText = when (grouping) {
+                    Grouping.YEAR -> localDate.year.toString()
+                    Grouping.MONTH -> {
+                        val monthName = localDate.month.getDisplayName(TextStyle.FULL, Locale.GERMANY)
+                        val year = localDate.year
+                        "$monthName $year"
+                    }
+                    Grouping.WEEK -> {
+                        val calendar = Calendar.getInstance()
+                        calendar.time = date
+                        calendar.firstDayOfWeek = Calendar.MONDAY
+                        val weekOfYear = calendar.get(Calendar.WEEK_OF_YEAR)
+                        val year = localDate.year
+                        "KW $weekOfYear $year"
+                    }
+                }
+
 
                 Row(
                     modifier = Modifier
@@ -445,11 +509,11 @@ fun PurchaseList(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "$monthName $year",
+                        text = headerText,
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "${"%.2f".format(monthTotal)} €",
+                        text = "${"%.2f".format(groupTotal)} €",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
