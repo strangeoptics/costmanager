@@ -202,7 +202,7 @@ fun PositionDetailCard(position: Position) {
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = "${position.quantity} ${position.unit}")
-                Text(text = "@ ${"%.2f".format(position.unitPrice)} €")
+                Text(text = "@ ${"%.2f".format(position.unitPrice)} €", style = MaterialTheme.typography.bodySmall)
             }
             Text(
                 text = "${"%.2f".format(position.price)} €",
