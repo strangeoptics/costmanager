@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            CostManagerTheme {
+            CostManagerTheme(darkTheme = true) {
                 CostManagerApp()
             }
         }
@@ -440,7 +440,7 @@ fun PurchaseList(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(MaterialTheme.colorScheme.background)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -469,9 +469,10 @@ fun PurchaseList(
 
                 SwipeToDismissBox(
                     state = dismissState,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     backgroundContent = {
                         val color by animateColorAsState(
-                            targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.Settled) Color.LightGray else Color.Red,
+                            targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.Settled) Color.Transparent else Color.Red,
                             label = ""
                         )
                         val scale by animateFloatAsState(
@@ -509,7 +510,6 @@ fun PurchaseCard(purchase: Purchase) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable {
                 val intent = Intent(context, PurchaseDetailActivity::class.java).apply {
                     putExtra("purchaseId", purchase.id)
