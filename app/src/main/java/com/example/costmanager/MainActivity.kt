@@ -16,11 +16,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,14 +32,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -116,6 +123,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+private fun createImageFile(context: Context): File {
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.GERMANY).format(Date())
+    val storageDir = context.cacheDir
+    return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -383,12 +397,90 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Einkauf hinzufügen")
+                var isFabMenuExpanded by remember { mutableStateOf(false) }
+                var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+                val cameraLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.TakePicture(),
+                    onResult = { success ->
+                        if (success) {
+                            tempPhotoUri?.let(processUri)
+                        }
+                    }
+                )
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    AnimatedVisibility(visible = isFabMenuExpanded) {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            FloatingActionButton(
+                                onClick = {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                    isFabMenuExpanded = false
+                                },
+                            ) {
+                                Icon(Icons.Default.Image, contentDescription = "Purchase aus einem Bild in der Fotogallerie erzeugen")
+                            }
+                            FloatingActionButton(
+                                onClick = {
+                                    // TODO: Purchase über einen Dialog erstellen
+                                    Toast.makeText(context, "TODO: Dialog erstellen", Toast.LENGTH_SHORT).show()
+                                    isFabMenuExpanded = false
+                                },
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = "Purchase über einen Dialog erstellen")
+                            }
+                            FloatingActionButton(
+                                onClick = {
+                                    // TODO: Purchase über Sprechen erzeugen
+                                    Toast.makeText(context, "TODO: Spracheingabe", Toast.LENGTH_SHORT).show()
+                                    isFabMenuExpanded = false
+                                },
+                            ) {
+                                Icon(Icons.Default.Mic, contentDescription = "Purchase über Sprechen erzeugen")
+                            }
+                        }
+                    }
+                    FloatingActionButton(
+                        onClick = {}
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .combinedClickable(
+                                    onClick = {
+                                        if (isFabMenuExpanded) {
+                                            isFabMenuExpanded = false
+                                        } else {
+                                            val photoFile = createImageFile(context)
+                                            val photoURI = FileProvider.getUriForFile(
+                                                context,
+                                                "${context.packageName}.provider",
+                                                photoFile
+                                            )
+                                            tempPhotoUri = photoURI
+                                            cameraLauncher.launch(photoURI)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        isFabMenuExpanded = true
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isFabMenuExpanded) Icons.Default.Close else Icons.Default.Add,
+                                contentDescription = if (isFabMenuExpanded) "Menü schließen" else "Einkauf hinzufügen (lange drücken für Menü)"
+                            )
+                        }
+                    }
                 }
             }
         ) { innerPadding ->
