@@ -310,6 +310,31 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun addPosition(purchaseId: Long, itemName: String, itemType: String, quantity: Double, unit: String, unitPrice: Double) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val price = quantity * unitPrice
+            val newPosition = Position(
+                purchaseId = purchaseId,
+                itemName = itemName,
+                itemType = itemType,
+                quantity = quantity,
+                unit = unit,
+                unitPrice = unitPrice,
+                price = price
+            )
+            repository.insertPositions(listOf(newPosition))
+
+            // Recalculate total and update purchase
+            val purchaseWithPositions = repository.getPurchaseWithPositions(purchaseId)
+            if (purchaseWithPositions != null) {
+                // The new position is already in the list from the DB call, so we can just sum them up
+                val newTotalPrice = purchaseWithPositions.positions.sumOf { it.price }
+                val updatedPurchase = purchaseWithPositions.purchase.copy(totalPrice = newTotalPrice)
+                repository.updatePurchase(updatedPurchase)
+            }
+        }
+    }
+
     fun updatePurchaseDate(purchaseId: Long, newDate: Date) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.updatePurchaseDate(purchaseId, newDate)
