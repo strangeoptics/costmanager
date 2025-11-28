@@ -1,42 +1,30 @@
 package com.example.costmanager
 
+import android.content.Context
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.costmanager.data.SettingsManager
 import com.example.costmanager.ui.theme.CostManagerTheme
 
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            CostManagerTheme {
-                SettingsScreen(onBack = { finish() })
+            CostManagerTheme(darkTheme = true) {
+                SettingsScreen {
+                    finish()
+                }
             }
         }
     }
@@ -46,8 +34,19 @@ class SettingsActivity : ComponentActivity() {
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val settingsManager = remember { SettingsManager(context) }
-    var apiKey by remember { mutableStateOf(settingsManager.getApiKey()) }
+    val sharedPreferences = remember {
+        context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    }
+
+    var initialLoadSize by remember {
+        mutableStateOf(sharedPreferences.getInt("initial_load_size", 3).toString())
+    }
+    var subsequentLoadSize by remember {
+        mutableStateOf(sharedPreferences.getInt("subsequent_load_size", 3).toString())
+    }
+    var apiKey by remember {
+        mutableStateOf(sharedPreferences.getString("google_api_key", "") ?: "")
+    }
 
     Scaffold(
         topBar = {
@@ -55,7 +54,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 title = { Text("Einstellungen") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -66,33 +65,36 @@ fun SettingsScreen(onBack: () -> Unit) {
                 .padding(innerPadding)
                 .padding(16.dp)
                 .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Geben Sie hier Ihren Google Gemini API Key ein:")
+            OutlinedTextField(
+                value = initialLoadSize,
+                onValueChange = {
+                    initialLoadSize = it
+                    sharedPreferences.edit().putInt("initial_load_size", it.toIntOrNull() ?: 3).apply()
+                },
+                label = { Text("Anzahl initial geladener Einkäufe") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = subsequentLoadSize,
+                onValueChange = {
+                    subsequentLoadSize = it
+                    sharedPreferences.edit().putInt("subsequent_load_size", it.toIntOrNull() ?: 3).apply()
+                },
+                label = { Text("Anzahl nachgeladener Einkäufe") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = apiKey,
-                onValueChange = { apiKey = it },
-                label = { Text("Gemini API Key") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Button(
-                onClick = {
-                    settingsManager.saveApiKey(apiKey)
-                    Toast.makeText(context, "API Key gespeichert!", Toast.LENGTH_SHORT).show()
-                    onBack()
+                onValueChange = {
+                    apiKey = it
+                    sharedPreferences.edit().putString("google_api_key", it).apply()
                 },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Speichern")
-            }
+                label = { Text("Google API Key") }
+            )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SettingsScreenPreview() {
-    CostManagerTheme {
-        SettingsScreen(onBack = {})
     }
 }

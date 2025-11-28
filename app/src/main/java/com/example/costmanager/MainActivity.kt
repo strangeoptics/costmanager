@@ -1,7 +1,9 @@
 package com.example.costmanager
 
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -64,6 +66,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -125,6 +128,30 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
     val datePickerRequest by purchaseViewModel.datePickerRequest.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
     var grouping by remember { mutableStateOf(Grouping.MONTH) }
+
+    val sharedPreferences = remember {
+        context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    }
+
+    var initialLoadSize by remember {
+        mutableStateOf(sharedPreferences.getInt("initial_load_size", 3))
+    }
+    var subsequentLoadSize by remember {
+        mutableStateOf(sharedPreferences.getInt("subsequent_load_size", 3))
+    }
+
+    var visibleItemCount by remember { mutableStateOf(initialLoadSize) }
+
+    LaunchedEffect(key1 = Unit) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            when (key) {
+                "initial_load_size" -> initialLoadSize = prefs.getInt(key, 3)
+                "subsequent_load_size" -> subsequentLoadSize = prefs.getInt(key, 3)
+            }
+        }
+        sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+    }
+
 
     if (datePickerRequest != null) {
         val datePickerState = rememberDatePickerState(
@@ -373,6 +400,10 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                         purchases = purchases,
                         purchaseViewModel = purchaseViewModel,
                         grouping = grouping,
+                        visibleItemCount = visibleItemCount,
+                        onLoadMore = {
+                            visibleItemCount += subsequentLoadSize
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                     if (isLoading) {
@@ -460,6 +491,8 @@ fun PurchaseList(
     purchases: List<PurchaseWithPositions>,
     purchaseViewModel: PurchaseViewModel,
     grouping: Grouping,
+    visibleItemCount: Int,
+    onLoadMore: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val groupedPurchases = purchases.groupBy {
@@ -476,7 +509,21 @@ fun PurchaseList(
     }.toSortedMap(compareByDescending { it })
 
     LazyColumn(modifier = modifier) {
-        groupedPurchases.forEach { (_, monthPurchases) ->
+        val flatPurchases = groupedPurchases.values.flatten()
+        val visiblePurchases = flatPurchases.take(visibleItemCount)
+
+        visiblePurchases.groupBy {
+            val calendar = Calendar.getInstance()
+            calendar.time = it.purchase.purchaseDate
+            when (grouping) {
+                Grouping.YEAR -> calendar.get(Calendar.YEAR)
+                Grouping.MONTH -> calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.MONTH)
+                Grouping.WEEK -> {
+                    calendar.firstDayOfWeek = Calendar.MONDAY
+                    calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.WEEK_OF_YEAR)
+                }
+            }
+        }.toSortedMap(compareByDescending { it }).forEach { (_, monthPurchases) ->
             stickyHeader {
                 val firstPurchaseInGroup = monthPurchases.first()
                 val date = firstPurchaseInGroup.purchase.purchaseDate
@@ -561,6 +608,18 @@ fun PurchaseList(
                         PurchaseCard(purchaseWithPositions.purchase)
                     }
                 )
+            }
+        }
+        if (visibleItemCount < purchases.size) {
+            item {
+                Button(
+                    onClick = onLoadMore,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text("Mehr laden")
+                }
             }
         }
     }
