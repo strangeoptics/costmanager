@@ -62,7 +62,20 @@ class GeminiProVisionModel(private val context: Context) {
                     text(prompt)
                 }
                 val response = generativeModel.generateContent(inputContent)
-                Log.d("GeminiResponse", "Raw JSON Response: ${response.text}")
+                //Log.d("GeminiResponse", "Raw JSON Response: ${response.text}")
+                // 2. Extrahiere die Metadaten zur Token-Nutzung
+                val usageMetadata = response.usageMetadata
+                if (usageMetadata != null) {
+                    val promptTokens = usageMetadata.promptTokenCount
+                    val responseTokens = usageMetadata.candidatesTokenCount
+                    val totalTokens = usageMetadata.totalTokenCount
+
+                    Log.d("GeminiTokens", "Request Tokens: $promptTokens")
+                    Log.d("GeminiTokens", "Response Tokens: $responseTokens")
+                    Log.d("GeminiTokens", "Total Tokens used: $totalTokens")
+                } else {
+                    Log.w("GeminiTokens", "Usage metadata not available in the response.")
+                }
                 response.text
             } catch (e: Exception) {
                 Log.e("GeminiResponse", "Error generating content", e)

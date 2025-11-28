@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.costmanager.data.SettingsManager
 import com.example.costmanager.ui.theme.CostManagerTheme
 
 class SettingsActivity : ComponentActivity() {
@@ -34,9 +35,11 @@ class SettingsActivity : ComponentActivity() {
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    val settingsManager = remember { SettingsManager(context) }
     val sharedPreferences = remember {
         context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     }
+
 
     var initialLoadSize by remember {
         mutableStateOf(sharedPreferences.getInt("initial_load_size", 3).toString())
@@ -45,7 +48,7 @@ fun SettingsScreen(onBack: () -> Unit) {
         mutableStateOf(sharedPreferences.getInt("subsequent_load_size", 3).toString())
     }
     var apiKey by remember {
-        mutableStateOf(sharedPreferences.getString("google_api_key", "") ?: "")
+        mutableStateOf(settingsManager.getApiKey())
     }
 
     Scaffold(
@@ -91,7 +94,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 value = apiKey,
                 onValueChange = {
                     apiKey = it
-                    sharedPreferences.edit().putString("google_api_key", it).apply()
+                    settingsManager.saveApiKey(it)
                 },
                 label = { Text("Google API Key") }
             )
