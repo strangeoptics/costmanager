@@ -606,7 +606,7 @@ fun ManualPurchaseDialog(
     var selectedDate by remember { mutableStateOf(Date()) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val options = listOf("Supermarkt", "Tankstelle", "Klamottenladen", "Baumarkt", "Unbekannt")
+    val options = listOf("Supermarkt", "Bäcker", "Tankstelle", "Klamottenladen", "Baumarkt", "Unbekannt")
     val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY)
 
     if (showDatePicker) {
