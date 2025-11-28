@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,6 +64,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -142,6 +144,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
     var isLoading by remember { mutableStateOf(false) }
     val datePickerRequest by purchaseViewModel.datePickerRequest.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
+    var showManualPurchaseDialog by remember { mutableStateOf(false) }
     var grouping by remember { mutableStateOf(Grouping.MONTH) }
 
     val sharedPreferences = remember {
@@ -239,6 +242,16 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                         Toast.makeText(context, "Fehler beim Speichern des Exports", Toast.LENGTH_LONG).show()
                     }
                 }
+            }
+        )
+    }
+    
+    if (showManualPurchaseDialog) {
+        ManualPurchaseDialog(
+            onDismiss = { showManualPurchaseDialog = false },
+            onConfirm = { store, storeType ->
+                purchaseViewModel.addPurchase(store, storeType)
+                showManualPurchaseDialog = false
             }
         )
     }
@@ -430,8 +443,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                             }
                             FloatingActionButton(
                                 onClick = {
-                                    // TODO: Purchase über einen Dialog erstellen
-                                    Toast.makeText(context, "TODO: Dialog erstellen", Toast.LENGTH_SHORT).show()
+                                    showManualPurchaseDialog = true
                                     isFabMenuExpanded = false
                                 },
                             ) {
@@ -576,6 +588,53 @@ fun ExportDialog(
             }
         }
     }
+}
+
+@Composable
+fun ManualPurchaseDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
+    var store by remember { mutableStateOf("") }
+    var storeType by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Einkauf erstellen") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = store,
+                    onValueChange = { store = it },
+                    label = { Text("Geschäft") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = storeType,
+                    onValueChange = { storeType = it },
+                    label = { Text("Kategorie (z.B. Supermarkt)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (store.isNotBlank()) {
+                        onConfirm(store, storeType)
+                    }
+                }
+            ) {
+                Text("Erstellen")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)

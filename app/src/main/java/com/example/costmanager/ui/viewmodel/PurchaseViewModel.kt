@@ -298,6 +298,18 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun addPurchase(store: String, storeType: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val newPurchase = Purchase(
+                purchaseDate = Date(),
+                store = store,
+                storeType = storeType,
+                totalPrice = 0.0
+            )
+            repository.insertPurchaseWithPositions(newPurchase, emptyList())
+        }
+    }
+
     fun updatePurchaseDate(purchaseId: Long, newDate: Date) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.updatePurchaseDate(purchaseId, newDate)
