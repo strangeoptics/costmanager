@@ -8,6 +8,8 @@ import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 class GeminiProVisionModel(private val context: Context) {
 
@@ -22,6 +24,19 @@ class GeminiProVisionModel(private val context: Context) {
             modelName = "gemini-2.5-flash",
             apiKey = apiKey
         )
+    }
+
+    private fun scaleBitmap(bitmap: Bitmap): Bitmap {
+        val shortSide = min(bitmap.width, bitmap.height)
+        if (shortSide <= 1536) {
+            return bitmap
+        }
+
+        val scaleFactor = 1536.0 / shortSide
+        val newWidth = (bitmap.width * scaleFactor).roundToInt()
+        val newHeight = (bitmap.height * scaleFactor).roundToInt()
+
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
     }
 
     suspend fun getPurchaseFromImage(image: Bitmap): String? {
@@ -57,8 +72,9 @@ class GeminiProVisionModel(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 val generativeModel = getGenerativeModel()
+                val scaledImage = scaleBitmap(image)
                 val inputContent = content {
-                    image(image)
+                    image(scaledImage)
                     text(prompt)
                 }
                 val response = generativeModel.generateContent(inputContent)
@@ -69,7 +85,8 @@ class GeminiProVisionModel(private val context: Context) {
                     val promptTokens = usageMetadata.promptTokenCount
                     val responseTokens = usageMetadata.candidatesTokenCount
                     val totalTokens = usageMetadata.totalTokenCount
-
+                    Log.d("GeminiTokens", "Bitmap Size: ${scaledImage.width}x${scaledImage.height}")
+                    Log.d("GeminiTokens", "Prompt: $promptTokens")
                     Log.d("GeminiTokens", "Request Tokens: $promptTokens")
                     Log.d("GeminiTokens", "Response Tokens: $responseTokens")
                     Log.d("GeminiTokens", "Total Tokens used: $totalTokens")
