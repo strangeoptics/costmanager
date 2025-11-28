@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Relation
 import androidx.room.RoomWarnings
 import androidx.room.Transaction
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 
@@ -33,6 +34,10 @@ interface PurchaseDao {
     fun getPurchaseWithPositions(purchaseId: Long): Flow<PurchaseWithPositions>
 
     @Transaction
+    @Query("SELECT * FROM purchases WHERE id = :purchaseId")
+    suspend fun getPurchaseWithPositionsNow(purchaseId: Long): PurchaseWithPositions?
+
+    @Transaction
     @Query("SELECT * FROM purchases WHERE purchaseDate BETWEEN :startDate AND :endDate ORDER BY purchaseDate DESC")
     suspend fun getPurchasesWithPositionsBetween(startDate: Date, endDate: Date): List<PurchaseWithPositions>
 
@@ -42,6 +47,9 @@ interface PurchaseDao {
 
     @Insert
     suspend fun insertPositions(positions: List<Position>)
+
+    @Update
+    suspend fun updatePurchase(purchase: Purchase)
 
     @Query("UPDATE purchases SET purchaseDate = :newDate WHERE id = :purchaseId")
     suspend fun updatePurchaseDate(purchaseId: Long, newDate: Date)

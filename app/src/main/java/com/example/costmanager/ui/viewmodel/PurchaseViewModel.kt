@@ -78,6 +78,10 @@ class PurchaseRepository(private val purchaseDao: PurchaseDao) {
 
     fun getPurchaseStream(id: Long) = purchaseDao.getPurchaseWithPositions(id).flowOn(Dispatchers.IO)
 
+    suspend fun getPurchaseWithPositions(id: Long): PurchaseWithPositions? {
+        return purchaseDao.getPurchaseWithPositionsNow(id)
+    }
+
     suspend fun getPurchasesBetween(startDate: Date, endDate: Date): List<PurchaseWithPositions> {
         return purchaseDao.getPurchasesWithPositionsBetween(startDate, endDate)
     }
@@ -88,6 +92,10 @@ class PurchaseRepository(private val purchaseDao: PurchaseDao) {
 
     suspend fun insertPositions(positions: List<Position>) {
         purchaseDao.insertPositions(positions)
+    }
+
+    suspend fun updatePurchase(purchase: Purchase) {
+        purchaseDao.updatePurchase(purchase)
     }
 
     suspend fun updatePurchaseDate(purchaseId: Long, newDate: Date) {
@@ -182,8 +190,16 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
 
     fun deletePosition(position: Position) {
         viewModelScope.launch(Dispatchers.IO) {
-            _undoState.value = UndoAction.DeletePosition(position)
             repository.deletePosition(position)
+            _undoState.value = UndoAction.DeletePosition(position)
+
+            // Recalculate total and update purchase
+            val purchaseWithPositions = repository.getPurchaseWithPositions(position.purchaseId)
+            if (purchaseWithPositions != null) {
+                val newTotalPrice = purchaseWithPositions.positions.sumOf { it.price }
+                val updatedPurchase = purchaseWithPositions.purchase.copy(totalPrice = newTotalPrice)
+                repository.updatePurchase(updatedPurchase)
+            }
         }
     }
 
@@ -199,6 +215,14 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
                 is UndoAction.DeletePosition -> {
                     // Reset ID to 0 to force new insertion
                     repository.insertPositions(listOf(action.position.copy(id = 0)))
+
+                    // Recalculate total and update purchase
+                    val purchaseWithPositions = repository.getPurchaseWithPositions(action.position.purchaseId)
+                    if (purchaseWithPositions != null) {
+                        val newTotalPrice = purchaseWithPositions.positions.sumOf { it.price }
+                        val updatedPurchase = purchaseWithPositions.purchase.copy(totalPrice = newTotalPrice)
+                        repository.updatePurchase(updatedPurchase)
+                    }
                 }
                 null -> {} // Nothing to undo
             }
