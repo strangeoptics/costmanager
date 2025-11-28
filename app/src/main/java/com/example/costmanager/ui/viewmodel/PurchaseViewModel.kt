@@ -298,10 +298,10 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun addPurchase(store: String, storeType: String) {
+    fun addPurchase(store: String, storeType: String, date: Date) {
         viewModelScope.launch(Dispatchers.IO) {
             val newPurchase = Purchase(
-                purchaseDate = Date(),
+                purchaseDate = date,
                 store = store,
                 storeType = storeType,
                 totalPrice = 0.0

@@ -23,6 +23,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +41,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
@@ -249,8 +253,8 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
     if (showManualPurchaseDialog) {
         ManualPurchaseDialog(
             onDismiss = { showManualPurchaseDialog = false },
-            onConfirm = { store, storeType ->
-                purchaseViewModel.addPurchase(store, storeType)
+            onConfirm = { store, storeType, date ->
+                purchaseViewModel.addPurchase(store, storeType, date)
                 showManualPurchaseDialog = false
             }
         )
@@ -590,13 +594,50 @@ fun ExportDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManualPurchaseDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String, Date) -> Unit
 ) {
     var store by remember { mutableStateOf("") }
     var storeType by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedDate by remember { mutableStateOf(Date()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val options = listOf("Supermarkt", "Tankstelle", "Klamottenladen", "Baumarkt", "Unbekannt")
+    val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY)
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.time
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        val rawDate = Date(it)
+                        // Adjust for timezone offset similar to other parts of the app
+                        val tz = TimeZone.getDefault()
+                        val offset = tz.getOffset(rawDate.time)
+                        selectedDate = Date(rawDate.time + offset)
+                    }
+                    showDatePicker = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Abbrechen")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -610,11 +651,59 @@ fun ManualPurchaseDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = storeType,
+                        onValueChange = { 
+                            storeType = it 
+                            expanded = true
+                        },
+                        label = { Text("Kategorie") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { expanded = !expanded }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                            }
+                        }
+                    )
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        options.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    storeType = option
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Date Picker Field
+                val interactionSource = remember { MutableInteractionSource() }
+                LaunchedEffect(interactionSource) {
+                    interactionSource.interactions.collect { interaction ->
+                        if (interaction is PressInteraction.Release) {
+                            showDatePicker = true
+                        }
+                    }
+                }
+                
                 OutlinedTextField(
-                    value = storeType,
-                    onValueChange = { storeType = it },
-                    label = { Text("Kategorie (z.B. Supermarkt)") },
-                    modifier = Modifier.fillMaxWidth()
+                    value = dateFormatter.format(selectedDate),
+                    onValueChange = { },
+                    label = { Text("Datum") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(Icons.Default.DateRange, contentDescription = "Datum wählen")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    interactionSource = interactionSource
                 )
             }
         },
@@ -622,7 +711,7 @@ fun ManualPurchaseDialog(
             TextButton(
                 onClick = {
                     if (store.isNotBlank()) {
-                        onConfirm(store, storeType)
+                        onConfirm(store, storeType, selectedDate)
                     }
                 }
             ) {
