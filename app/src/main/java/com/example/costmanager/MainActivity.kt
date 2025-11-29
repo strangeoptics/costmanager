@@ -105,7 +105,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 enum class Grouping {
-    WEEK, MONTH, YEAR
+    DAY, WEEK, MONTH, YEAR
 }
 
 class MainActivity : ComponentActivity() {
@@ -379,6 +379,13 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
+                                text = { Text("Nach Tag") },
+                                onClick = {
+                                    grouping = Grouping.DAY
+                                    showMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Nach Woche") },
                                 onClick = {
                                     grouping = Grouping.WEEK
@@ -534,6 +541,7 @@ fun PurchaseList(
                 calendar.firstDayOfWeek = Calendar.MONDAY
                 calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.WEEK_OF_YEAR)
             }
+            Grouping.DAY -> calendar.get(Calendar.YEAR) * 1000 + calendar.get(Calendar.DAY_OF_YEAR)
         }
     }.toSortedMap(compareByDescending { it })
 
@@ -551,6 +559,7 @@ fun PurchaseList(
                     calendar.firstDayOfWeek = Calendar.MONDAY
                     calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.WEEK_OF_YEAR)
                 }
+                Grouping.DAY -> calendar.get(Calendar.YEAR) * 1000 + calendar.get(Calendar.DAY_OF_YEAR)
             }
         }.toSortedMap(compareByDescending { it }).forEach { (_, monthPurchases) ->
             stickyHeader {
@@ -573,6 +582,10 @@ fun PurchaseList(
                         val weekOfYear = calendar.get(Calendar.WEEK_OF_YEAR)
                         val year = localDate.year
                         "KW $weekOfYear $year"
+                    }
+                    Grouping.DAY -> {
+                        val dateFormatter = SimpleDateFormat("E, dd.MM.yyyy", Locale.GERMANY)
+                        dateFormatter.format(date)
                     }
                 }
 

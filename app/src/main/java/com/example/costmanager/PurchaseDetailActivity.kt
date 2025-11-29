@@ -187,7 +187,7 @@ fun PurchaseDetailScreen(
 
 @Composable
 fun PurchaseHeader(purchase: Purchase, positionCount: Int) {
-    val dateFormatter = SimpleDateFormat("dd. MMMM yyyy", Locale.GERMANY)
+    val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -200,7 +200,7 @@ fun PurchaseHeader(purchase: Purchase, positionCount: Int) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(text = dateFormatter.format(purchase.purchaseDate))
-            Text(text = "$positionCount Positionen")
+            Text(text = "$positionCount Pos")
             Text(text = "${"%.2f".format(purchase.totalPrice)} €")
         }
     }
