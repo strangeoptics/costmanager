@@ -53,7 +53,7 @@ class GeminiProVisionModel(private val context: Context) {
               "positions": [
                 {
                   "itemName": "Name des Artikels",
-                  "itemType": "Kategorie des Artikels (z.B. Lebensmittel, Kleidung, Treibstoff, Elektronik)",
+                  "itemType": "Kategorie des Artikels (z.B. Lebensmittel, Körperpflege, Kleidung, Treibstoff, Elektronik, Dekorativ, Baumarkt)",
                   "quantity": 1.0, // Die Menge als Zahl.
                   "unit": "Die Einheit (z.B. Stück, kg, Liter, g)",
                   "unitPrice": 1.23, // Der Preis pro Einheit.
