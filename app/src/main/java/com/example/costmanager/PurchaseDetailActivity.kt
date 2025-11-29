@@ -11,37 +11,28 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -53,13 +44,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.costmanager.data.Position
 import com.example.costmanager.data.Purchase
 import com.example.costmanager.data.PurchaseWithPositions
+import com.example.costmanager.ui.dialogs.AddPositionDialog
 import com.example.costmanager.ui.theme.CostManagerTheme
 import com.example.costmanager.ui.viewmodel.PurchaseViewModel
 import java.text.SimpleDateFormat
@@ -193,111 +184,6 @@ fun PurchaseDetailScreen(
         }
     }
 }
-
-@Composable
-fun AddPositionDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, Double, String, Double) -> Unit
-) {
-    var itemName by remember { mutableStateOf("") }
-    var itemType by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("1") }
-    var unit by remember { mutableStateOf("Stück") }
-    var unitPrice by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
-
-    val itemTypeSuggestions = listOf("Lebensmittel", "Kleidung", "Treibstoff", "Elektronik", "Baumarkt", "Dekorativ")
-
-    val isFormValid = itemName.isNotBlank() &&
-            quantity.toDoubleOrNull() != null && quantity.toDouble() > 0 &&
-            unitPrice.toDoubleOrNull() != null && unitPrice.toDouble() >= 0
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Position hinzufügen") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = itemName,
-                    onValueChange = { itemName = it },
-                    label = { Text("Artikelname") }
-                )
-                Box {
-                    OutlinedTextField(
-                        value = itemType,
-                        onValueChange = {
-                            itemType = it
-                            expanded = true
-                        },
-                        label = { Text("Kategorie") },
-                        trailingIcon = {
-                            IconButton(onClick = { expanded = !expanded }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
-                            }
-                        }
-                    )
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                    ) {
-                        itemTypeSuggestions.forEach { suggestion ->
-                            DropdownMenuItem(
-                                text = { Text(suggestion) },
-                                onClick = {
-                                    itemType = suggestion
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = quantity,
-                        onValueChange = { quantity = it },
-                        label = { Text("Menge") },
-                        modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                    OutlinedTextField(
-                        value = unit,
-                        onValueChange = { unit = it },
-                        label = { Text("Einheit") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                OutlinedTextField(
-                    value = unitPrice,
-                    onValueChange = { unitPrice = it },
-                    label = { Text("Preis pro Einheit") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(
-                        itemName,
-                        itemType,
-                        quantity.toDouble(),
-                        unit,
-                        unitPrice.toDouble()
-                    )
-                },
-                enabled = isFormValid
-            ) {
-                Text("Hinzufügen")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
-            }
-        }
-    )
-}
-
 
 @Composable
 fun PurchaseHeader(purchase: Purchase, positionCount: Int) {

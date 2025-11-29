@@ -23,35 +23,26 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -68,9 +59,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -94,11 +83,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.costmanager.data.Purchase
 import com.example.costmanager.data.PurchaseWithPositions
+import com.example.costmanager.ui.dialogs.ExportDialog
+import com.example.costmanager.ui.dialogs.ManualPurchaseDialog
 import com.example.costmanager.ui.theme.CostManagerTheme
 import com.example.costmanager.ui.viewmodel.PurchaseViewModel
 import kotlinx.coroutines.launch
@@ -249,7 +239,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
             }
         )
     }
-    
+
     if (showManualPurchaseDialog) {
         ManualPurchaseDialog(
             onDismiss = { showManualPurchaseDialog = false },
@@ -522,208 +512,6 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
             }
         }
     }
-}
-
-// ... ExportDialog remains the same ...
-@Composable
-fun ExportDialog(
-    onDismiss: () -> Unit,
-    onShare: (Date, Date) -> Unit,
-    onSave: (Date, Date) -> Unit
-) {
-    var fromDate by remember { mutableStateOf(Date(0)) } // Start of epoch
-    var toDate by remember { mutableStateOf(Date()) } // Now
-    val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY)
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Daten exportieren", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        fromDate = Date(0)
-                        toDate = Date()
-                    }, modifier = Modifier.weight(1f)) {
-                        Text("Alle")
-                    }
-                    Button(onClick = {
-                        val cal = Calendar.getInstance()
-                        cal.add(Calendar.MONTH, -1)
-                        fromDate = cal.time
-                        toDate = Date()
-                    }, modifier = Modifier.weight(1f)) {
-                        Text("Letzter Monat")
-                    }
-                    Button(onClick = {
-                        val cal = Calendar.getInstance()
-                        cal.add(Calendar.YEAR, -1)
-                        fromDate = cal.time
-                        toDate = Date()
-                    }, modifier = Modifier.weight(1f)) {
-                        Text("Letztes Jahr")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Von: ${dateFormatter.format(fromDate)}")
-                Text("Bis: ${dateFormatter.format(toDate)}")
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = { onShare(fromDate, toDate); onDismiss() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Teilen")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = { onSave(fromDate, toDate); onDismiss() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Speichern")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ManualPurchaseDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, Date) -> Unit
-) {
-    var store by remember { mutableStateOf("") }
-    var storeType by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
-    var selectedDate by remember { mutableStateOf(Date()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-
-    val options = listOf("Supermarkt", "Bäcker", "Tankstelle", "Klamottenladen", "Baumarkt", "Unbekannt")
-    val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY)
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate.time
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        val rawDate = Date(it)
-                        // Adjust for timezone offset similar to other parts of the app
-                        val tz = TimeZone.getDefault()
-                        val offset = tz.getOffset(rawDate.time)
-                        selectedDate = Date(rawDate.time + offset)
-                    }
-                    showDatePicker = false
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Abbrechen")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "Einkauf erstellen") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = store,
-                    onValueChange = { store = it },
-                    label = { Text("Geschäft") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = storeType,
-                        onValueChange = { 
-                            storeType = it 
-                            expanded = true
-                        },
-                        label = { Text("Kategorie") },
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            IconButton(onClick = { expanded = !expanded }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
-                            }
-                        }
-                    )
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        options.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = {
-                                    storeType = option
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Date Picker Field
-                val interactionSource = remember { MutableInteractionSource() }
-                LaunchedEffect(interactionSource) {
-                    interactionSource.interactions.collect { interaction ->
-                        if (interaction is PressInteraction.Release) {
-                            showDatePicker = true
-                        }
-                    }
-                }
-                
-                OutlinedTextField(
-                    value = dateFormatter.format(selectedDate),
-                    onValueChange = { },
-                    label = { Text("Datum") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(Icons.Default.DateRange, contentDescription = "Datum wählen")
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    interactionSource = interactionSource
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (store.isNotBlank()) {
-                        onConfirm(store, storeType, selectedDate)
-                    }
-                }
-            ) {
-                Text("Erstellen")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
-            }
-        }
-    )
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
