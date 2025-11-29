@@ -37,10 +37,13 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.sqrt
 
 
 object SampleData {
@@ -155,6 +158,7 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
 
     // --- Speech Recognition Properties ---
     private var audioRecord: AudioRecord? = null
+    @Volatile
     private var isRecording = false
     private val audioBuffer = ByteArrayOutputStream()
     private val sampleRate = 16000
@@ -199,9 +203,9 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+
     fun stopRecordingAndTranscribe(onResult: (String?) -> Unit) {
         if (!isRecording) {
-            onResult(null)
             return
         }
 

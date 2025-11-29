@@ -471,28 +471,30 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    AnimatedVisibility(visible = isFabMenuExpanded) {
+                    AnimatedVisibility(visible = isFabMenuExpanded || isRecording) {
                         Column(
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            FloatingActionButton(
-                                onClick = {
-                                    photoPickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                    isFabMenuExpanded = false
-                                },
-                            ) {
-                                Icon(Icons.Default.Image, contentDescription = "Purchase aus einem Bild in der Fotogallerie erzeugen")
-                            }
-                            FloatingActionButton(
-                                onClick = {
-                                    manualPurchaseDialogState = ManualPurchaseDialogState(show = true)
-                                    isFabMenuExpanded = false
-                                },
-                            ) {
-                                Icon(Icons.Default.Edit, contentDescription = "Purchase über einen Dialog erstellen")
+                            if (isFabMenuExpanded) {
+                                FloatingActionButton(
+                                    onClick = {
+                                        photoPickerLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                        isFabMenuExpanded = false
+                                    },
+                                ) {
+                                    Icon(Icons.Default.Image, contentDescription = "Purchase aus einem Bild in der Fotogallerie erzeugen")
+                                }
+                                FloatingActionButton(
+                                    onClick = {
+                                        manualPurchaseDialogState = ManualPurchaseDialogState(show = true)
+                                        isFabMenuExpanded = false
+                                    },
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Purchase über einen Dialog erstellen")
+                                }
                             }
                             FloatingActionButton(
                                 onClick = {
@@ -539,37 +541,39 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                             }
                         }
                     }
-                    FloatingActionButton(
-                        onClick = {}
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .combinedClickable(
-                                    onClick = {
-                                        if (isFabMenuExpanded) {
-                                            isFabMenuExpanded = false
-                                        } else {
-                                            val photoFile = createImageFile(context)
-                                            val photoURI = FileProvider.getUriForFile(
-                                                context,
-                                                "${context.packageName}.provider",
-                                                photoFile
-                                            )
-                                            tempPhotoUri = photoURI
-                                            cameraLauncher.launch(photoURI)
-                                        }
-                                    },
-                                    onLongClick = {
-                                        isFabMenuExpanded = true
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center
+                    if (!isRecording) {
+                        FloatingActionButton(
+                            onClick = {}
                         ) {
-                            Icon(
-                                imageVector = if (isFabMenuExpanded) Icons.Default.Close else Icons.Default.Add,
-                                contentDescription = if (isFabMenuExpanded) "Menü schließen" else "Einkauf hinzufügen (lange drücken für Menü)"
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (isFabMenuExpanded) {
+                                                isFabMenuExpanded = false
+                                            } else {
+                                                val photoFile = createImageFile(context)
+                                                val photoURI = FileProvider.getUriForFile(
+                                                    context,
+                                                    "${context.packageName}.provider",
+                                                    photoFile
+                                                )
+                                                tempPhotoUri = photoURI
+                                                cameraLauncher.launch(photoURI)
+                                            }
+                                        },
+                                        onLongClick = {
+                                            isFabMenuExpanded = true
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isFabMenuExpanded) Icons.Default.Close else Icons.Default.Add,
+                                    contentDescription = if (isFabMenuExpanded) "Menü schließen" else "Einkauf hinzufügen (lange drücken für Menü)"
+                                )
+                            }
                         }
                     }
                 }
