@@ -21,7 +21,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,12 +61,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -87,6 +86,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.costmanager.data.Purchase
 import com.example.costmanager.data.PurchaseWithPositions
+import com.example.costmanager.ui.dialogs.EditPurchaseDialog
 import com.example.costmanager.ui.dialogs.ExportDialog
 import com.example.costmanager.ui.dialogs.ManualPurchaseDialog
 import com.example.costmanager.ui.theme.CostManagerTheme
@@ -139,6 +139,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
     val datePickerRequest by purchaseViewModel.datePickerRequest.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
     var showManualPurchaseDialog by remember { mutableStateOf(false) }
+    var showEditPurchaseDialog by remember { mutableStateOf<Purchase?>(null) }
     var grouping by remember { mutableStateOf(Grouping.MONTH) }
 
     val sharedPreferences = remember {
@@ -246,6 +247,17 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
             onConfirm = { store, storeType, date, positionInput ->
                 purchaseViewModel.addPurchase(store, storeType, date, positionInput)
                 showManualPurchaseDialog = false
+            }
+        )
+    }
+
+    showEditPurchaseDialog?.let { purchase ->
+        EditPurchaseDialog(
+            purchase = purchase,
+            onDismiss = { showEditPurchaseDialog = null },
+            onConfirm = { updatedPurchase ->
+                purchaseViewModel.updatePurchase(updatedPurchase)
+                showEditPurchaseDialog = null
             }
         )
     }
@@ -510,6 +522,9 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                         onLoadMore = {
                             visibleItemCount += subsequentLoadSize
                         },
+                        onPurchaseLongClick = { purchase ->
+                            showEditPurchaseDialog = purchase
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                     if (isLoading) {
@@ -529,6 +544,7 @@ fun PurchaseList(
     grouping: Grouping,
     visibleItemCount: Int,
     onLoadMore: () -> Unit,
+    onPurchaseLongClick: (Purchase) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val groupedPurchases = purchases.groupBy {
@@ -647,7 +663,10 @@ fun PurchaseList(
                         }
                     },
                     content = {
-                        PurchaseCard(purchaseWithPositions.purchase)
+                        PurchaseCard(
+                            purchase = purchaseWithPositions.purchase,
+                            onLongClick = { onPurchaseLongClick(purchaseWithPositions.purchase) }
+                        )
                     }
                 )
             }
@@ -667,20 +686,24 @@ fun PurchaseList(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PurchaseCard(purchase: Purchase) {
+fun PurchaseCard(purchase: Purchase, onLongClick: (Purchase) -> Unit) {
     val context = LocalContext.current
     val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                val intent = Intent(context, PurchaseDetailActivity::class.java).apply {
-                    putExtra("purchaseId", purchase.id)
-                }
-                context.startActivity(intent)
-            }
+            .combinedClickable(
+                onClick = {
+                    val intent = Intent(context, PurchaseDetailActivity::class.java).apply {
+                        putExtra("purchaseId", purchase.id)
+                    }
+                    context.startActivity(intent)
+                },
+                onLongClick = { onLongClick(purchase) }
+            )
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Row(

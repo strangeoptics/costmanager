@@ -51,6 +51,9 @@ interface PurchaseDao {
     @Update
     suspend fun updatePurchase(purchase: Purchase)
 
+    @Update
+    suspend fun updatePosition(position: Position)
+
     @Query("UPDATE purchases SET purchaseDate = :newDate WHERE id = :purchaseId")
     suspend fun updatePurchaseDate(purchaseId: Long, newDate: Date)
 

@@ -106,6 +106,10 @@ class PurchaseRepository(private val purchaseDao: PurchaseDao) {
         purchaseDao.updatePurchase(purchase)
     }
 
+    suspend fun updatePosition(position: Position) {
+        purchaseDao.updatePosition(position)
+    }
+
     suspend fun updatePurchaseDate(purchaseId: Long, newDate: Date) {
         purchaseDao.updatePurchaseDate(purchaseId, newDate)
     }
@@ -355,6 +359,25 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
             val purchaseWithPositions = repository.getPurchaseWithPositions(purchaseId)
             if (purchaseWithPositions != null) {
                 // The new position is already in the list from the DB call, so we can just sum them up
+                val newTotalPrice = purchaseWithPositions.positions.sumOf { it.price }
+                val updatedPurchase = purchaseWithPositions.purchase.copy(totalPrice = newTotalPrice)
+                repository.updatePurchase(updatedPurchase)
+            }
+        }
+    }
+
+    fun updatePurchase(purchase: Purchase) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updatePurchase(purchase)
+        }
+    }
+
+    fun updatePosition(position: Position) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updatePosition(position)
+            // Recalculate total and update purchase
+            val purchaseWithPositions = repository.getPurchaseWithPositions(position.purchaseId)
+            if (purchaseWithPositions != null) {
                 val newTotalPrice = purchaseWithPositions.positions.sumOf { it.price }
                 val updatedPurchase = purchaseWithPositions.purchase.copy(totalPrice = newTotalPrice)
                 repository.updatePurchase(updatedPurchase)

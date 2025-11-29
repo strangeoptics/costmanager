@@ -5,7 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,9 +33,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,6 +53,8 @@ import com.example.costmanager.data.Position
 import com.example.costmanager.data.Purchase
 import com.example.costmanager.data.PurchaseWithPositions
 import com.example.costmanager.ui.dialogs.AddPositionDialog
+import com.example.costmanager.ui.dialogs.EditPositionDialog
+import com.example.costmanager.ui.dialogs.EditPurchaseDialog
 import com.example.costmanager.ui.theme.CostManagerTheme
 import com.example.costmanager.ui.viewmodel.PurchaseViewModel
 import java.text.SimpleDateFormat
@@ -86,6 +90,8 @@ fun PurchaseDetailScreen(
     val purchaseWithPositions by purchaseViewModel.getPurchase(purchaseId).collectAsState()
     val undoState by purchaseViewModel.undoState.collectAsState()
     var showAddPositionDialog by remember { mutableStateOf(false) }
+    var showEditPurchaseDialog by remember { mutableStateOf<Purchase?>(null) }
+    var showEditPositionDialog by remember { mutableStateOf<Position?>(null) }
 
     if (showAddPositionDialog) {
         AddPositionDialog(
@@ -93,6 +99,28 @@ fun PurchaseDetailScreen(
             onConfirm = { itemName, itemType, quantity, unit, unitPrice ->
                 purchaseViewModel.addPosition(purchaseId, itemName, itemType, quantity, unit, unitPrice)
                 showAddPositionDialog = false
+            }
+        )
+    }
+
+    showEditPurchaseDialog?.let { purchase ->
+        EditPurchaseDialog(
+            purchase = purchase,
+            onDismiss = { showEditPurchaseDialog = null },
+            onConfirm = { updatedPurchase ->
+                purchaseViewModel.updatePurchase(updatedPurchase)
+                showEditPurchaseDialog = null
+            }
+        )
+    }
+
+    showEditPositionDialog?.let { position ->
+        EditPositionDialog(
+            position = position,
+            onDismiss = { showEditPositionDialog = null },
+            onConfirm = { updatedPosition ->
+                purchaseViewModel.updatePosition(updatedPosition)
+                showEditPositionDialog = null
             }
         )
     }
@@ -130,7 +158,11 @@ fun PurchaseDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 item {
-                    PurchaseHeader(purchaseData.purchase, purchaseData.positions.size)
+                    PurchaseHeader(
+                        purchase = purchaseData.purchase,
+                        positionCount = purchaseData.positions.size,
+                        onLongClick = { showEditPurchaseDialog = purchaseData.purchase }
+                    )
                 }
                 items(purchaseData.positions, key = { it.id }) { position ->
                     val dismissState = rememberSwipeToDismissBoxState(
@@ -174,7 +206,9 @@ fun PurchaseDetailScreen(
                             }
                         },
                         content = {
-                            PositionDetailCard(position)
+                            PositionDetailCard(position, onLongClick = {
+                                showEditPositionDialog = it
+                            })
                         }
                     )
                 }
@@ -185,13 +219,18 @@ fun PurchaseDetailScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PurchaseHeader(purchase: Purchase, positionCount: Int) {
+fun PurchaseHeader(purchase: Purchase, positionCount: Int, onLongClick: () -> Unit) {
     val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY)
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
+            .combinedClickable(
+                onClick = {},
+                onLongClick = onLongClick
+            )
     ) {
         Row(
             modifier = Modifier
@@ -207,10 +246,16 @@ fun PurchaseHeader(purchase: Purchase, positionCount: Int) {
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PositionDetailCard(position: Position) {
+fun PositionDetailCard(position: Position, onLongClick: (Position) -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { onLongClick(position) }
+            )
     ) {
         Row(
             modifier = Modifier
