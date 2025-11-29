@@ -243,8 +243,8 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
     if (showManualPurchaseDialog) {
         ManualPurchaseDialog(
             onDismiss = { showManualPurchaseDialog = false },
-            onConfirm = { store, storeType, date ->
-                purchaseViewModel.addPurchase(store, storeType, date)
+            onConfirm = { store, storeType, date, positionInput ->
+                purchaseViewModel.addPurchase(store, storeType, date, positionInput)
                 showManualPurchaseDialog = false
             }
         )

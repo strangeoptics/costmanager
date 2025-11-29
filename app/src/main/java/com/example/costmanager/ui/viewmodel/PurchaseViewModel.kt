@@ -67,6 +67,14 @@ data class GeminiPositionResponse(
 
 data class DatePickerRequest(val purchaseId: Long)
 
+data class PositionInput(
+    val itemName: String,
+    val itemType: String,
+    val quantity: Double,
+    val unit: String,
+    val unitPrice: Double
+)
+
 sealed class UndoAction {
     data class DeletePurchase(val data: PurchaseWithPositions) : UndoAction()
     data class DeletePosition(val position: Position) : UndoAction()
@@ -298,15 +306,34 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun addPurchase(store: String, storeType: String, date: Date) {
+    fun addPurchase(store: String, storeType: String, date: Date, positionInput: PositionInput?) {
         viewModelScope.launch(Dispatchers.IO) {
+            val newPositions = mutableListOf<Position>()
+            var totalPrice = 0.0
+
+            positionInput?.let {
+                val price = it.quantity * it.unitPrice
+                totalPrice = price
+                newPositions.add(
+                    Position(
+                        purchaseId = 0, // Will be set by Room
+                        itemName = it.itemName,
+                        itemType = it.itemType,
+                        quantity = it.quantity,
+                        unit = it.unit,
+                        unitPrice = it.unitPrice,
+                        price = price
+                    )
+                )
+            }
+
             val newPurchase = Purchase(
                 purchaseDate = date,
                 store = store,
                 storeType = storeType,
-                totalPrice = 0.0
+                totalPrice = totalPrice
             )
-            repository.insertPurchaseWithPositions(newPurchase, emptyList())
+            repository.insertPurchaseWithPositions(newPurchase, newPositions)
         }
     }
 
