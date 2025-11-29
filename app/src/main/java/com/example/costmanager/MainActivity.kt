@@ -1,9 +1,11 @@
 package com.example.costmanager
 
+import android.Manifest
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -42,6 +44,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -82,6 +85,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.costmanager.data.Purchase
@@ -89,6 +93,7 @@ import com.example.costmanager.data.PurchaseWithPositions
 import com.example.costmanager.ui.dialogs.EditPurchaseDialog
 import com.example.costmanager.ui.dialogs.ExportDialog
 import com.example.costmanager.ui.dialogs.ManualPurchaseDialog
+import com.example.costmanager.ui.dialogs.PositionInput
 import com.example.costmanager.ui.theme.CostManagerTheme
 import com.example.costmanager.ui.viewmodel.PurchaseViewModel
 import kotlinx.coroutines.launch
@@ -126,6 +131,14 @@ private fun createImageFile(context: Context): File {
     return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
 }
 
+data class ManualPurchaseDialogState(
+    val show: Boolean = false,
+    val store: String = "",
+    val storeType: String = "",
+    val date: Date = Date(),
+    val position: PositionInput? = null
+)
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,9 +151,11 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
     var isLoading by remember { mutableStateOf(false) }
     val datePickerRequest by purchaseViewModel.datePickerRequest.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
-    var showManualPurchaseDialog by remember { mutableStateOf(false) }
+    var manualPurchaseDialogState by remember { mutableStateOf(ManualPurchaseDialogState()) }
     var showEditPurchaseDialog by remember { mutableStateOf<Purchase?>(null) }
     var grouping by remember { mutableStateOf(Grouping.MONTH) }
+    var isRecording by remember { mutableStateOf(false) }
+
 
     val sharedPreferences = remember {
         context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -241,13 +256,17 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
         )
     }
 
-    if (showManualPurchaseDialog) {
+    if (manualPurchaseDialogState.show) {
         ManualPurchaseDialog(
-            onDismiss = { showManualPurchaseDialog = false },
+            onDismiss = { manualPurchaseDialogState = ManualPurchaseDialogState(show = false) },
             onConfirm = { store, storeType, date, positionInput ->
                 purchaseViewModel.addPurchase(store, storeType, date, positionInput)
-                showManualPurchaseDialog = false
-            }
+                manualPurchaseDialogState = ManualPurchaseDialogState(show = false)
+            },
+            initialStore = manualPurchaseDialogState.store,
+            initialStoreType = manualPurchaseDialogState.storeType,
+            initialDate = manualPurchaseDialogState.date,
+            initialPosition = manualPurchaseDialogState.position
         )
     }
 
@@ -307,6 +326,19 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
         contract = ActivityResultContracts.GetContent(),
         onResult = processUri
     )
+
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            isRecording = true
+            purchaseViewModel.startRecording()
+            Toast.makeText(context, "Aufnahme gestartet...", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Berechtigung für Audioaufnahme benötigt.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -456,7 +488,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                             }
                             FloatingActionButton(
                                 onClick = {
-                                    showManualPurchaseDialog = true
+                                    manualPurchaseDialogState = ManualPurchaseDialogState(show = true)
                                     isFabMenuExpanded = false
                                 },
                             ) {
@@ -464,12 +496,46 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                             }
                             FloatingActionButton(
                                 onClick = {
-                                    // TODO: Purchase über Sprechen erzeugen
-                                    Toast.makeText(context, "TODO: Spracheingabe", Toast.LENGTH_SHORT).show()
+                                    if (isRecording) {
+                                        isRecording = false
+                                        isLoading = true
+                                        Toast.makeText(context, "Aufnahme beendet, verarbeite...", Toast.LENGTH_SHORT).show()
+                                        purchaseViewModel.stopRecordingAndTranscribe { transcribedText ->
+                                            if (transcribedText != null) {
+                                                purchaseViewModel.processSpeechInput(transcribedText) { store, storeType, date, position ->
+                                                    isLoading = false
+                                                    manualPurchaseDialogState = ManualPurchaseDialogState(
+                                                        show = true,
+                                                        store = store,
+                                                        storeType = storeType,
+                                                        date = date,
+                                                        position = position
+                                                    )
+                                                }
+                                            } else {
+                                                isLoading = false
+                                                Toast.makeText(context, "Spracherkennung fehlgeschlagen.", Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    } else {
+                                        when (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)) {
+                                            PackageManager.PERMISSION_GRANTED -> {
+                                                isRecording = true
+                                                purchaseViewModel.startRecording()
+                                                Toast.makeText(context, "Aufnahme gestartet...", Toast.LENGTH_SHORT).show()
+                                            }
+                                            else -> {
+                                                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                            }
+                                        }
+                                    }
                                     isFabMenuExpanded = false
                                 },
                             ) {
-                                Icon(Icons.Default.Mic, contentDescription = "Purchase über Sprechen erzeugen")
+                                Icon(
+                                    imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                                    contentDescription = if (isRecording) "Aufnahme stoppen" else "Purchase über Sprechen erzeugen"
+                                )
                             }
                         }
                     }

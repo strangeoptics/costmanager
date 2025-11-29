@@ -39,33 +39,44 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.costmanager.ui.viewmodel.PositionInput
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+data class PositionInput(
+    val itemName: String,
+    val itemType: String,
+    val quantity: Double,
+    val unit: String,
+    val unitPrice: Double
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManualPurchaseDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Date, PositionInput?) -> Unit
+    onConfirm: (String, String, Date, PositionInput?) -> Unit,
+    initialStore: String = "",
+    initialStoreType: String = "",
+    initialDate: Date = Date(),
+    initialPosition: PositionInput? = null
 ) {
     // Purchase state
-    var store by remember { mutableStateOf("") }
-    var storeType by remember { mutableStateOf("") }
+    var store by remember { mutableStateOf(initialStore) }
+    var storeType by remember { mutableStateOf(initialStoreType) }
     var expandedStoreType by remember { mutableStateOf(false) }
-    var selectedDate by remember { mutableStateOf(Date()) }
+    var selectedDate by remember { mutableStateOf(initialDate) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     // Position state
-    var addPosition by remember { mutableStateOf(false) }
-    var itemName by remember { mutableStateOf("") }
-    var itemType by remember { mutableStateOf("") }
+    var addPosition by remember { mutableStateOf(initialPosition != null) }
+    var itemName by remember { mutableStateOf(initialPosition?.itemName ?: "") }
+    var itemType by remember { mutableStateOf(initialPosition?.itemType ?: "") }
     var expandedItemType by remember { mutableStateOf(false) }
-    var quantity by remember { mutableStateOf("1") }
-    var unit by remember { mutableStateOf("Stück") }
-    var unitPrice by remember { mutableStateOf("") }
+    var quantity by remember { mutableStateOf(initialPosition?.quantity?.toString() ?: "1.0") }
+    var unit by remember { mutableStateOf(initialPosition?.unit ?: "Stück") }
+    var unitPrice by remember { mutableStateOf(initialPosition?.unitPrice?.toString() ?: "") }
 
     val storeTypeOptions = listOf("Supermarkt", "Tankstelle", "Klamottenladen", "Baumarkt", "Unbekannt")
     val itemTypeSuggestions = listOf("Lebensmittel", "Kleidung", "Treibstoff", "Elektronik", "Baumarkt", "Dekorativ")
@@ -73,8 +84,8 @@ fun ManualPurchaseDialog(
 
     val isPositionDataValid = !addPosition || (
             itemName.isNotBlank() &&
-            quantity.toDoubleOrNull() != null && quantity.toDouble() > 0 &&
-            unitPrice.toDoubleOrNull() != null && unitPrice.toDouble() >= 0
+                    quantity.toDoubleOrNull() != null && quantity.toDouble() > 0 &&
+                    unitPrice.toDoubleOrNull() != null && unitPrice.toDouble() >= 0
             )
     val isFormValid = store.isNotBlank() && isPositionDataValid
 
@@ -133,7 +144,7 @@ fun ManualPurchaseDialog(
                     }
                 }
                 OutlinedTextField(value = dateFormatter.format(selectedDate), onValueChange = {}, label = { Text("Datum") }, readOnly = true, trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Datum wählen") }, modifier = Modifier.fillMaxWidth(), interactionSource = interactionSource)
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider()
                 Spacer(modifier = Modifier.height(8.dp))
@@ -179,9 +190,9 @@ fun ManualPurchaseDialog(
                         PositionInput(
                             itemName = itemName,
                             itemType = itemType,
-                            quantity = quantity.toDouble(),
+                            quantity = quantity.toDoubleOrNull() ?: 1.0,
                             unit = unit,
-                            unitPrice = unitPrice.toDouble()
+                            unitPrice = unitPrice.toDoubleOrNull() ?: 0.0
                         )
                     } else {
                         null

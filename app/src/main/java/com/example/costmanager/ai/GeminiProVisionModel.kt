@@ -8,6 +8,9 @@ import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -37,6 +40,56 @@ class GeminiProVisionModel(private val context: Context) {
         val newHeight = (bitmap.height * scaleFactor).roundToInt()
 
         return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+    }
+
+    suspend fun getPurchaseFromText(text: String): String? {
+        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY).format(Date())
+        val prompt = """
+        Analysiere den folgenden Text, der einen Einkauf beschreibt. Extrahiere die folgenden Informationen und gib sie als ein einziges JSON-Objekt zurück.
+        Das JSON-Objekt sollte KEINE Markdown-Formatierung wie ```json am Anfang oder ``` am Ende enthalten.
+        Das heutige Datum ist $currentDate. Wenn kein Datum genannt wird, verwende das heutige Datum.
+
+        Struktur des JSON-Objekts:
+        {
+          "purchaseDate": "YYYY-MM-DD", // Das Datum des Einkaufs.
+          "store": "Name des Geschäfts",
+          "storeType": "Klassifiziere das Geschäft. Mögliche Werte sind: Supermarkt, Tankstelle, Klamottenladen, Baumarkt, Unbekannt",
+          "totalPrice": 123.45, // Der Gesamtbetrag des Einkaufs.
+          "positions": [
+            {
+              "itemName": "Name des Artikels",
+              "itemType": "Kategorie des Artikels (z.B. Lebensmittel, Körperpflege, Kleidung, Treibstoff, Elektronik, Dekorativ, Baumarkt)",
+              "quantity": 1.0, // Die Menge als Zahl.
+              "unit": "Die Einheit (z.B. Stück, kg, Liter, g)",
+              "unitPrice": 1.23, // Der Preis pro Einheit.
+              "price": 1.23 // Der Gesamtpreis für diese Position.
+            }
+          ]
+        }
+
+        Wichtige Hinweise:
+        - Gib nur das JSON-Objekt als String zurück.
+        - Wenn keine oder nur eine Position genannt wird, erstelle trotzdem ein valides JSON mit einer leeren oder einer "positions"-Liste.
+        - Leite den 'totalPrice' aus der Summe der Positionen ab, falls keine Gesamtsumme genannt wird. Wenn eine Gesamtsumme genannt wird, verwende diese.
+        - Wenn keine Preise genannt werden, setze die Preis-Felder auf 0.0.
+        - Wenn keine Mengenangaben gemacht werden, gehe von einer Menge von 1.0 und der Einheit "Stück" aus.
+        """.trimIndent()
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val generativeModel = getGenerativeModel()
+                val inputContent = content {
+                    text(prompt)
+                    text(text)
+                }
+                val response = generativeModel.generateContent(inputContent)
+                Log.d("GeminiResponse", "Raw JSON Response from Text: ${response.text}")
+                response.text
+            } catch (e: Exception) {
+                Log.e("GeminiResponse", "Error generating content from text", e)
+                null
+            }
+        }
     }
 
     suspend fun getPurchaseFromImage(image: Bitmap): String? {
