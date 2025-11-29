@@ -1,13 +1,23 @@
 package com.example.costmanager.ui.dialogs
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,63 +39,85 @@ fun EditPositionDialog(
     var quantity by remember { mutableStateOf(position.quantity.toString()) }
     var unit by remember { mutableStateOf(position.unit) }
     var unitPrice by remember { mutableStateOf(position.unitPrice.toString()) }
+    var expandedItemType by remember { mutableStateOf(false) }
+
+    val itemTypeSuggestions = listOf("Lebensmittel", "Kleidung", "Treibstoff", "Elektronik", "Baumarkt", "Dekorativ")
+
+    val isFormValid = itemName.isNotBlank() &&
+            quantity.toDoubleOrNull() != null && quantity.toDouble() > 0 &&
+            unitPrice.toDoubleOrNull() != null && unitPrice.toDouble() >= 0
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Position") },
+        title = { Text("Position bearbeiten") },
         text = {
-            Column {
-                TextField(
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
                     value = itemName,
                     onValueChange = { itemName = it },
-                    label = { Text("Item Name") }
+                    label = { Text("Artikelname") },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(
-                    value = itemType,
-                    onValueChange = { itemType = it },
-                    label = { Text("Item Type") }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(
-                    value = quantity,
-                    onValueChange = { quantity = it },
-                    label = { Text("Quantity") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(
-                    value = unit,
-                    onValueChange = { unit = it },
-                    label = { Text("Unit") }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(
+                Box {
+                    OutlinedTextField(
+                        value = itemType,
+                        onValueChange = { itemType = it; expandedItemType = true },
+                        label = { Text("Artikel-Kategorie") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = { IconButton(onClick = { expandedItemType = !expandedItemType }) { Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown") } }
+                    )
+                    DropdownMenu(expanded = expandedItemType, onDismissRequest = { expandedItemType = false }) {
+                        itemTypeSuggestions.forEach { suggestion ->
+                            DropdownMenuItem(text = { Text(suggestion) }, onClick = { itemType = suggestion; expandedItemType = false })
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = quantity,
+                        onValueChange = { quantity = it },
+                        label = { Text("Menge") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    OutlinedTextField(
+                        value = unit,
+                        onValueChange = { unit = it },
+                        label = { Text("Einheit") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                OutlinedTextField(
                     value = unitPrice,
                     onValueChange = { unitPrice = it },
-                    label = { Text("Unit Price") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    label = { Text("Preis pro Einheit") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val updatedPosition = position.copy(
-                    itemName = itemName,
-                    itemType = itemType,
-                    quantity = quantity.toDoubleOrNull() ?: position.quantity,
-                    unit = unit,
-                    unitPrice = unitPrice.toDoubleOrNull() ?: position.unitPrice,
-                    price = (quantity.toDoubleOrNull() ?: 0.0) * (unitPrice.toDoubleOrNull() ?: 0.0)
-                )
-                onConfirm(updatedPosition)
-            }) {
-                Text("Save")
+            TextButton(
+                onClick = {
+                    val updatedPrice = (quantity.toDoubleOrNull() ?: 0.0) * (unitPrice.toDoubleOrNull() ?: 0.0)
+                    val updatedPosition = position.copy(
+                        itemName = itemName,
+                        itemType = itemType,
+                        quantity = quantity.toDoubleOrNull() ?: position.quantity,
+                        unit = unit,
+                        unitPrice = unitPrice.toDoubleOrNull() ?: position.unitPrice,
+                        price = updatedPrice
+                    )
+                    onConfirm(updatedPosition)
+                },
+                enabled = isFormValid
+            ) {
+                Text("Speichern")
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
-                Text("Cancel")
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
             }
         }
     )
