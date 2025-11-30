@@ -41,11 +41,11 @@ fun EditPositionDialog(
     var unitPrice by remember { mutableStateOf(position.unitPrice.toString()) }
     var expandedItemType by remember { mutableStateOf(false) }
 
-    val itemTypeSuggestions = listOf("Lebensmittel", "Kleidung", "Treibstoff", "Elektronik", "Baumarkt", "Dekorativ")
+    val itemTypeSuggestions = listOf("Lebensmittel", "Kleidung", "Treibstoff", "Elektronik", "Baumarkt", "Dekorativ", "Rabatt")
 
     val isFormValid = itemName.isNotBlank() &&
             quantity.toDoubleOrNull() != null && quantity.toDouble() > 0 &&
-            unitPrice.toDoubleOrNull() != null && unitPrice.toDouble() >= 0
+            unitPrice.toDoubleOrNull() != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -78,7 +78,7 @@ fun EditPositionDialog(
                         onValueChange = { quantity = it },
                         label = { Text("Menge") },
                         modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
                     OutlinedTextField(
                         value = unit,
@@ -91,7 +91,7 @@ fun EditPositionDialog(
                     value = unitPrice,
                     onValueChange = { unitPrice = it },
                     label = { Text("Preis pro Einheit") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
             }

@@ -85,7 +85,7 @@ fun ManualPurchaseDialog(
     val isPositionDataValid = !addPosition || (
             itemName.isNotBlank() &&
                     quantity.toDoubleOrNull() != null && quantity.toDouble() > 0 &&
-                    unitPrice.toDoubleOrNull() != null && unitPrice.toDouble() >= 0
+                    unitPrice.toDoubleOrNull() != null
             )
     val isFormValid = store.isNotBlank() && isPositionDataValid
 
@@ -175,10 +175,10 @@ fun ManualPurchaseDialog(
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(value = quantity, onValueChange = { quantity = it }, label = { Text("Menge") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            OutlinedTextField(value = quantity, onValueChange = { quantity = it }, label = { Text("Menge") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
                             OutlinedTextField(value = unit, onValueChange = { unit = it }, label = { Text("Einheit") }, modifier = Modifier.weight(1f))
                         }
-                        OutlinedTextField(value = unitPrice, onValueChange = { unitPrice = it }, label = { Text("Preis pro Einheit") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = unitPrice, onValueChange = { unitPrice = it }, label = { Text("Preis pro Einheit") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
                     }
                 }
             }

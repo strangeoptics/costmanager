@@ -58,7 +58,7 @@ class GeminiProVisionModel(private val context: Context) {
           "positions": [
             {
               "itemName": "Name des Artikels",
-              "itemType": "Kategorie des Artikels (z.B. Lebensmittel, Körperpflege, Kleidung, Treibstoff, Elektronik, Dekorativ, Baumarkt, Büro)",
+              "itemType": "Kategorie des Artikels (z.B. Lebensmittel, Körperpflege, Kleidung, Treibstoff, Elektronik, Dekorativ, Baumarkt, Büro, Rabatt)",
               "quantity": 1.0, // Die Menge als Zahl.
               "unit": "Die Einheit (z.B. Stück, kg, Liter, g)",
               "unitPrice": 1.23, // Der Preis pro Einheit.
@@ -73,6 +73,7 @@ class GeminiProVisionModel(private val context: Context) {
         - Leite den 'totalPrice' aus der Summe der Positionen ab, falls keine Gesamtsumme genannt wird. Wenn eine Gesamtsumme genannt wird, verwende diese.
         - Wenn keine Preise genannt werden, setze die Preis-Felder auf 0.0.
         - Wenn keine Mengenangaben gemacht werden, gehe von einer Menge von 1.0 und der Einheit "Stück" aus.
+        - Erkenne Rabatte und führe sie als eigene Position mit einem negativen Preis auf. Der 'itemName' sollte "Rabatt" oder ähnlich sein und der 'itemType' "Rabatt".
         """.trimIndent()
 
         return withContext(Dispatchers.IO) {
@@ -106,7 +107,7 @@ class GeminiProVisionModel(private val context: Context) {
               "positions": [
                 {
                   "itemName": "Name des Artikels",
-                  "itemType": "Kategorie des Artikels (z.B. Lebensmittel, Körperpflege, Kleidung, Treibstoff, Elektronik, Dekorativ, Baumarkt, Büro)",
+                  "itemType": "Kategorie des Artikels (z.B. Lebensmittel, Körperpflege, Kleidung, Treibstoff, Elektronik, Dekorativ, Baumarkt, Büro, Rabatt)",
                   "quantity": 1.0, // Die Menge als Zahl.
                   "unit": "Die Einheit (z.B. Stück, kg, Liter, g)",
                   "unitPrice": 1.23, // Der Preis pro Einheit.
@@ -118,7 +119,8 @@ class GeminiProVisionModel(private val context: Context) {
             Wichtige Hinweise:
             - Gib nur das JSON-Objekt als String zurück.
             - Fasse Artikel, die zusammengehören, aber auf dem Bon getrennt sind (z.B. Name und Preis in verschiedenen Zeilen), korrekt zu einer Position zusammen.
-            - Ignoriere irrelevante Informationen wie Rabatte, Steuern oder Treuepunkte, es sei denn, sie sind direkt im Gesamtpreis enthalten.
+            - Erkenne Rabatte und führe sie als eigene Position mit einem negativen Preis auf. Der 'itemName' sollte "Rabatt" oder ähnlich sein und der 'itemType' "Rabatt".
+            - Ignoriere irrelevante Informationen wie Steuern oder Treuepunkte, es sei denn, sie sind direkt im Gesamtpreis enthalten.
             - Der 'totalPrice' im Hauptobjekt muss die Summe aller 'price'-Werte in den 'positions' sein.
         """.trimIndent()
 
