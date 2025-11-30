@@ -24,7 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -151,7 +151,7 @@ fun PurchaseDetailScreen(
                             }
                             context.startActivity(intent)
                         }) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = "Kassenbon anzeigen")
+                            Icon(Icons.Default.Photo, contentDescription = "Kassenbon anzeigen")
                         }
                     }
                 }
