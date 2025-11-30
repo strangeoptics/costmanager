@@ -373,7 +373,7 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
     }
 
 
-    fun createPurchaseFromImage(bitmap: Bitmap, onFinished: () -> Unit) {
+    fun createPurchaseFromImage(bitmap: Bitmap, photoUri: String?, onFinished: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             val resultJson = geminiModel.getPurchaseFromImage(bitmap)
             if (resultJson != null) {
@@ -405,7 +405,8 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
                         purchaseDate = purchaseDate,
                         store = geminiResponse.store,
                         storeType = geminiResponse.storeType.lowercase(Locale.GERMANY),
-                        totalPrice = geminiResponse.totalPrice
+                        totalPrice = geminiResponse.totalPrice,
+                        photoUri = photoUri
                     )
 
                     val newPositions = geminiResponse.positions.map {

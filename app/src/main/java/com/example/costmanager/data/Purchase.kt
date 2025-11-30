@@ -11,5 +11,6 @@ data class Purchase(
     val purchaseDate: Date,
     val store: String,
     val storeType: String, // Added field
-    val totalPrice: Double
+    val totalPrice: Double,
+    val photoUri: String? = null
 )

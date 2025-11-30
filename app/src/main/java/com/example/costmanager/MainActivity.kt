@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -125,10 +126,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private fun createImageFile(context: Context): File {
+private fun createImageUri(context: Context): Uri? {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.GERMANY).format(Date())
-    val storageDir = context.cacheDir
-    return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
+    val contentValues = ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, "JPEG_${timeStamp}_")
+        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+        }
+    }
+    return context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
 }
 
 data class ManualPurchaseDialogState(
@@ -305,7 +312,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
-                purchaseViewModel.createPurchaseFromImage(bitmap) {
+                purchaseViewModel.createPurchaseFromImage(bitmap, uri.toString()) {
                     isLoading = false
                     Toast.makeText(context, "Einkauf erfolgreich hinzugefügt!", Toast.LENGTH_SHORT).show()
                 }
@@ -494,7 +501,7 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                                     },
                                 ) {
                                     Icon(Icons.Default.Edit, contentDescription = "Purchase über einen Dialog erstellen")
-                                }
+                                 }
                             }
                             FloatingActionButton(
                                 onClick = {
@@ -553,14 +560,11 @@ fun CostManagerApp(purchaseViewModel: PurchaseViewModel = viewModel()) {
                                             if (isFabMenuExpanded) {
                                                 isFabMenuExpanded = false
                                             } else {
-                                                val photoFile = createImageFile(context)
-                                                val photoURI = FileProvider.getUriForFile(
-                                                    context,
-                                                    "${context.packageName}.provider",
-                                                    photoFile
-                                                )
-                                                tempPhotoUri = photoURI
-                                                cameraLauncher.launch(photoURI)
+                                                val photoURI = createImageUri(context)
+                                                if (photoURI != null) {
+                                                    tempPhotoUri = photoURI
+                                                    cameraLauncher.launch(photoURI)
+                                                }
                                             }
                                         },
                                         onLongClick = {
