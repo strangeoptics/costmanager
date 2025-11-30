@@ -123,6 +123,10 @@ class PurchaseRepository(private val purchaseDao: PurchaseDao) {
         purchaseDao.updatePurchaseDate(purchaseId, newDate)
     }
 
+    suspend fun updatePhotoUri(purchaseId: Long, photoUri: String) {
+        purchaseDao.updatePhotoUri(purchaseId, photoUri)
+    }
+
     suspend fun deletePurchase(purchase: Purchase) {
         purchaseDao.deletePurchase(purchase)
     }
@@ -565,6 +569,12 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
             repository.updatePurchaseDate(purchaseId, newDate)
         }
         _datePickerRequest.value = null // Reset request
+    }
+
+    fun updatePhotoUri(purchaseId: Long, photoUri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updatePhotoUri(purchaseId, photoUri)
+        }
     }
 
     fun dismissDatePicker() {

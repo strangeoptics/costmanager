@@ -148,6 +148,7 @@ fun PurchaseDetailScreen(
                         IconButton(onClick = {
                             val intent = Intent(context, PhotoViewActivity::class.java).apply {
                                 putExtra("photo_uri", uriString)
+                                putExtra("purchase_id", purchaseId)
                             }
                             context.startActivity(intent)
                         }) {

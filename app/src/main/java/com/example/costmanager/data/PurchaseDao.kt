@@ -57,6 +57,9 @@ interface PurchaseDao {
     @Query("UPDATE purchases SET purchaseDate = :newDate WHERE id = :purchaseId")
     suspend fun updatePurchaseDate(purchaseId: Long, newDate: Date)
 
+    @Query("UPDATE purchases SET photoUri = :photoUri WHERE id = :purchaseId")
+    suspend fun updatePhotoUri(purchaseId: Long, photoUri: String)
+
     @Delete
     suspend fun deletePurchase(purchase: Purchase)
 

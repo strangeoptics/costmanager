@@ -40,6 +40,9 @@
             android:exported="false"
             android:label="@string/app_name"
             android:theme="@style/Theme.CostManager" />
+        <activity
+            android:name="com.canhub.cropper.CropImageActivity"
+            android:theme="@style/Theme.AppCompat.DayNight" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
