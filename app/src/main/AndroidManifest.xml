@@ -35,6 +35,11 @@
             android:exported="false"
             android:label="@string/title_activity_settings"
             android:theme="@style/Theme.CostManager" />
+        <activity
+            android:name=".PhotoViewActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.CostManager" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
